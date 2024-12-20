@@ -5,6 +5,7 @@ from datetime import datetime
 import re
 import yaml
 from pathlib import Path
+import urllib.request  # Standard library way to download a file over HTTP
 
 class TextAnnotator:
     """
@@ -68,6 +69,14 @@ class TextAnnotator:
 
         self.setup_gui()
 
+        # Initial button states:
+        # 1) Only "Load Configuration" is enabled at app start.
+        # 2) Everything else is disabled until the user successfully loads a config.
+        self.load_config_button.config(state="normal")
+        self.load_file_button.config(state="disabled")
+        self.load_progress_button.config(state="disabled")
+        self.save_progress_button.config(state="disabled")
+
     def setup_gui(self):
         """
         Set up the GUI layout, including buttons for file operations, the text display area,
@@ -77,10 +86,22 @@ class TextAnnotator:
         top_frame = ttk.Frame(self.root, padding="10")
         top_frame.pack(fill=tk.X)
 
-        ttk.Button(top_frame, text="Load Configuration", command=self.load_configuration).pack(side=tk.LEFT)
-        ttk.Button(top_frame, text="Load File", command=self.load_file).pack(side=tk.LEFT, padx=5)
-        ttk.Button(top_frame, text="Load Progress", command=self.load_progress).pack(side=tk.LEFT, padx=5)
-        ttk.Button(top_frame, text="Save Progress", command=self.save_annotations).pack(side=tk.LEFT, padx=5)
+        # Create the buttons as instance variables so we can adjust their state programmatically
+        self.load_config_button = ttk.Button(top_frame, text="Load Configuration", command=self.load_configuration)
+        self.load_config_button.pack(side=tk.LEFT)
+
+        self.load_file_button = ttk.Button(top_frame, text="Load File", command=self.load_file)
+        self.load_file_button.pack(side=tk.LEFT, padx=5)
+
+        self.load_progress_button = ttk.Button(top_frame, text="Load Progress", command=self.load_progress)
+        self.load_progress_button.pack(side=tk.LEFT, padx=5)
+
+        self.save_progress_button = ttk.Button(top_frame, text="Save Progress", command=self.save_annotations)
+        self.save_progress_button.pack(side=tk.LEFT, padx=5)
+
+        # Always enabled button for downloading file from GitHub
+        self.download_stuffz_button = ttk.Button(top_frame, text="Download Stuffz", command=self.download_stuffz)
+        self.download_stuffz_button.pack(side=tk.LEFT, padx=5)
 
         # Text display frame
         text_frame = ttk.LabelFrame(self.root, text="Current Sentence", padding="10")
@@ -103,6 +124,29 @@ class TextAnnotator:
         # Create main container for category levels
         self.category_frames = []
         self.create_category_level(0, list(self.category_structure.keys()))
+
+    def download_stuffz(self):
+        """
+        Always enabled button to download configuration.yml from the public GitHub repo.
+        1) Asks the user to pick a folder. 
+        2) Fetches configuration.yml from the MiniAnnotator GitHub repository (raw). 
+        3) Saves the file into the chosen folder.
+        
+        This is simpler than a full git clone or running 'wget' commands,
+        and only retrieves the single file needed.
+        """
+        target_dir = filedialog.askdirectory(title="Choose Where to Save configuration.yml")
+        if not target_dir:
+            return  # user canceled
+
+        url = "https://raw.githubusercontent.com/SpyrosMouselinos/MiniAnnotator/main/configuration.yml"
+        destination_path = Path(target_dir) / "configuration.yml"
+
+        try:
+            urllib.request.urlretrieve(url, destination_path)
+            messagebox.showinfo("Download Complete", f"Saved to: {destination_path}")
+        except Exception as e:
+            messagebox.showerror("Download Failed", f"Something went wrong:\n{str(e)}")
 
     def choose_split_method(self):
         """
@@ -193,6 +237,12 @@ class TextAnnotator:
                 "Success",
                 f"Configuration loaded successfully from {Path(config_path).name}"
             )
+
+            # Once a config is loaded, disable load configuration and enable load file & load progress
+            self.load_config_button.config(state="disabled")
+            self.load_file_button.config(state="normal")
+            self.load_progress_button.config(state="normal")
+            # Keep save button disabled until at least one annotation is done
 
         except Exception as e:
             messagebox.showerror(
@@ -298,8 +348,6 @@ class TextAnnotator:
         try:
             df = pd.read_csv(csv_path)
 
-            # For demonstration, not automatically parsing the suffix from CSV name.
-            # Instead, we ask once again if self.split_method is not set.
             file_path = filedialog.askopenfilename(
                 title="Select the original text file",
                 filetypes=[("Text files", "*.txt")]
@@ -336,6 +384,13 @@ class TextAnnotator:
                 "Progress Loaded",
                 f"Loaded {len(self.annotations)} previous annotations.\nContinuing from sentence {self.current_index + 1}"
             )
+
+            # If we have at least one annotation after loading progress, disable 'Load File' & 'Load Progress'
+            # and enable 'Save Progress'
+            if len(self.annotations) > 0:
+                self.load_file_button.config(state="disabled")
+                self.load_progress_button.config(state="disabled")
+                self.save_progress_button.config(state="normal")
 
         except Exception as e:
             messagebox.showerror(
@@ -375,6 +430,13 @@ class TextAnnotator:
             if self.current_index >= len(self.sentences):
                 self.save_annotations()
                 messagebox.showinfo("Complete", "Annotation complete! Results saved.")
+            else:
+                # If this is the first annotation made, we disable "Load File" and "Load Progress"
+                # and enable "Save Progress"
+                if len(self.annotations) == 1:
+                    self.load_file_button.config(state="disabled")
+                    self.load_progress_button.config(state="disabled")
+                    self.save_progress_button.config(state="normal")
 
     def update_display(self):
         """
