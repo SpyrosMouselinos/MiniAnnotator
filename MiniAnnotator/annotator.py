@@ -20,7 +20,7 @@ class TextAnnotator:
         """
         self.root = root
         self.root.title("MiniAnnotator")
-        self.root.geometry("800x600")
+        self.root.geometry("1200x800")
 
         # Data storage
         self.sentences = []
