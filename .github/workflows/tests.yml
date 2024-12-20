@@ -39,6 +39,7 @@ jobs:
 
   build-for-windows:
     name: Build for Windows
+    needs: [test-on-ubuntu]
     runs-on: windows-latest
     steps:
       - name: Check out repository
