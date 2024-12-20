@@ -52,26 +52,35 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Set up Miniconda
+        uses: conda-incubator/setup-miniconda@v2
         with:
-          python-version: "3.9"
+          activate-environment: build-env
+          environment-file: environment.yml
+          auto-update-conda: true
 
-      - name: Install Python dependencies
+      - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install pyinstaller
-          pip install -r requirements.txt
+          conda install --file requirements.txt
+
+      - name: Locate Tcl/Tk paths
+        id: locate-tcl-tk
+        run: |
+          echo "::set-output name=tcl_path::$(conda info --base)/envs/build-env/Library/lib/tcl8.6"
+          echo "::set-output name=tk_path::$(conda info --base)/envs/build-env/Library/lib/tk8.6"
 
       - name: Build .exe using PyInstaller
         run: |
-          pyinstaller --onefile MiniAnnotator/annotator.py --name MiniAnnotator.exe
+          pyinstaller --clean --onefile --noconsole \
+            --add-data "${{ steps.locate-tcl-tk.outputs.tcl_path }};./tcl8.6" \
+            --add-data "${{ steps.locate-tcl-tk.outputs.tk_path }};./tk8.6" \
+            annotator.py
 
       - name: Upload Windows .exe artifact
         uses: actions/upload-artifact@v4
         with:
           name: MiniAnnotator-Windows-Executable
-          path: dist/MiniAnnotator.exe
+          path: dist/annotator.exe
 
   release:
     name: Create Release (On Version Tag)
@@ -88,10 +97,15 @@ jobs:
           name: MiniAnnotator-Windows-Executable
           path: ./dist
 
+      - name: Zip the dist folder
+        run: |
+          cd dist
+          zip -r MiniAnnotator-Windows.zip .
+
       - name: Create Release and Upload Asset
         uses: softprops/action-gh-release@v1
         with:
-          files: ./dist/MiniAnnotator.exe
+          files: ./dist/MiniAnnotator-Windows.zip
           name: "Release ${{ github.ref_name }}"
           draft: false
           prerelease: false
