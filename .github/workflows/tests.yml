@@ -18,12 +18,17 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v2
 
+      - name: Install system dependencies (for tkinter)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-tk
+
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
           python-version: "3.9"
 
-      - name: Install dependencies
+      - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
@@ -52,7 +57,6 @@ jobs:
 
       - name: Build .exe using PyInstaller
         run: |
-          # Replace "annotator.py" with your actual entry-point Python script.
           pyinstaller --onefile annotator.py
 
       - name: Upload Windows .exe artifact
