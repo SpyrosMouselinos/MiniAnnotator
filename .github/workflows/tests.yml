@@ -57,10 +57,10 @@ jobs:
 
       - name: Build .exe using PyInstaller
         run: |
-          pyinstaller --onefile annotator.py
+          pyinstaller --onefile MiniAnnotator/annotator.py --name MiniAnnotator
 
       - name: Upload Windows .exe artifact
         uses: actions/upload-artifact@v3
         with:
           name: MiniAnnotator-Windows-Executable
-          path: dist/annotator.exe
+          path: dist/MiniAnnotator.exe
