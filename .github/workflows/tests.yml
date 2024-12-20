@@ -74,13 +74,13 @@ jobs:
 
       - name: Build .exe using PyInstaller
         run: |
-          pyinstaller --clean --onefile --noconsole --add-data "${{ steps.locate-tcl-tk.outputs.tcl_path }};./tcl8.6" --add-data "${{ steps.locate-tcl-tk.outputs.tk_path }};./tk8.6" annotator.py
+          pyinstaller --clean --onefile --noconsole --add-data "${{ steps.locate-tcl-tk.outputs.tcl_path }};./tcl8.6" --add-data "${{ steps.locate-tcl-tk.outputs.tk_path }};./tk8.6" MiniAnnotator/annotator.py
 
       - name: Upload Windows .exe artifact
         uses: actions/upload-artifact@v4
         with:
           name: MiniAnnotator-Windows-Executable
-          path: dist/annotator.exe
+          path: dist/*
 
   release:
     name: Create Release (On Version Tag)
