@@ -2,11 +2,13 @@ name: Build and Test
 
 on:
   push:
-    branches: 
+    branches:
       - "main"
       - "master"
+    tags:
+      - "v*.*.*"    # Only triggers the 'release' job if the push is a version tag, e.g. v1.0.0
   pull_request:
-    branches: 
+    branches:
       - "main"
       - "master"
 
@@ -39,7 +41,7 @@ jobs:
 
   build-for-windows:
     name: Build for Windows
-    needs: [test-on-ubuntu]
+    needs: [test-on-ubuntu]    # This job only runs if 'test-on-ubuntu' finishes successfully
     runs-on: windows-latest
     steps:
       - name: Check out repository
@@ -65,3 +67,40 @@ jobs:
         with:
           name: MiniAnnotator-Windows-Executable
           path: dist/MiniAnnotator.exe
+
+  release:
+    name: Create Release (On Version Tag)
+    needs: [ build-for-windows ]  # Only proceeds if build-for-windows passes
+    runs-on: ubuntu-latest
+    # This condition ensures the release steps only happen for tagged pushes like "v1.0.0"
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v3
+
+      - name: Download .exe artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: MiniAnnotator-Windows-Executable
+          path: ./dist
+
+      - name: Create GitHub Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref_name }}
+          release_name: "Release ${{ github.ref_name }}"
+          draft: false
+          prerelease: false
+
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./dist/MiniAnnotator.exe
+          asset_name: MiniAnnotator.exe
+          asset_content_type: application/octet-stream
