@@ -59,22 +59,28 @@ jobs:
 
       - name: Create and activate conda environment
         run: |
-          conda create --name build-env --yes
-          conda activate build-env
+          conda create --name builder python=3.10 --yes
+          conda activate builder
+          # Ensure tkinter is available in Python
+          conda install -y tk
+          python --version
 
-      - name: Install dependencies
+      - name: Discover Tcl/Tk paths
+        id: discover-tcl-tk
+        shell: bash
         run: |
-          conda install --file requirements.txt
+          # Instruct python to print out the library paths for Tcl and Tk
+          echo "Discovering Tcl/Tk..."
+          python -c "import tkinter; import os; tcl_dir = tkinter.Tcl().eval('info library'); print(f'TCL_LIBRARY={tcl_dir}')"
+          python -c "import tkinter; import os; tk_dir = tkinter.Tk().eval('info library'); print(f'TK_LIBRARY={tk_dir}')"
 
-      - name: Locate Tcl/Tk paths
-        id: locate-tcl-tk
-        run: |
-          echo "::set-output name=tcl_path::$(conda info --base)/envs/build-env/Library/lib/tcl8.6"
-          echo "::set-output name=tk_path::$(conda info --base)/envs/build-env/Library/lib/tk8.6"
+          # Save them to the GitHub Actions environment so subsequent steps can reference them
+          echo "TCL_LIBRARY=$(python -c 'import tkinter; print(tkinter.Tcl().eval(\"info library\"))')" >> $GITHUB_ENV
+          echo "TK_LIBRARY=$(python -c 'import tkinter; print(tkinter.Tk().eval(\"info library\"))')" >> $GITHUB_ENV
 
       - name: Build .exe using PyInstaller
-        run: |
-          pyinstaller --clean --onefile --noconsole --add-data "${{ steps.locate-tcl-tk.outputs.tcl_path }};./tcl8.6" --add-data "${{ steps.locate-tcl-tk.outputs.tk_path }};./tk8.6" MiniAnnotator/annotator.py
+        # Keep it on one line to satisfy PowerShell or specify shell: cmd for multiline
+        run: pyinstaller --clean --onefile --noconsole --add-data "${{ env.TCL_LIBRARY }};tcl8.6" --add-data "${{ env.TK_LIBRARY }};tk8.6" MiniAnnotator/annotator.py
 
       - name: Upload Windows .exe artifact
         uses: actions/upload-artifact@v4
