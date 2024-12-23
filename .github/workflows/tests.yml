@@ -66,21 +66,23 @@ jobs:
           python --version
 
       - name: Discover Tcl/Tk paths
-        id: discover-tcl-tk
+        # Use a Bash shell so we can avoid tricky PowerShell quoting issues
         shell: bash
         run: |
-          # Instruct python to print out the library paths for Tcl and Tk
           echo "Discovering Tcl/Tk..."
-          python -c "import tkinter; import os; tcl_dir = tkinter.Tcl().eval('info library'); print(f'TCL_LIBRARY={tcl_dir}')"
-          python -c "import tkinter; import os; tk_dir = tkinter.Tk().eval('info library'); print(f'TK_LIBRARY={tk_dir}')"
-
-          # Save them to the GitHub Actions environment so subsequent steps can reference them
-          echo "TCL_LIBRARY=$(python -c 'import tkinter; print(tkinter.Tcl().eval(\"info library\"))')" >> $GITHUB_ENV
-          echo "TK_LIBRARY=$(python -c 'import tkinter; print(tkinter.Tk().eval(\"info library\"))')" >> $GITHUB_ENV
+          # Get Tcl path
+          TCL_RES=$(python -c 'import tkinter; print(tkinter.Tcl().eval("info library"))')
+          echo "TCL_LIBRARY=$TCL_RES" >> $GITHUB_ENV
+          # Get Tk path
+          TK_RES=$(python -c 'import tkinter; print(tkinter.Tk().eval("info library"))')
+          echo "TK_LIBRARY=$TK_RES" >> $GITHUB_ENV
 
       - name: Build .exe using PyInstaller
-        # Keep it on one line to satisfy PowerShell or specify shell: cmd for multiline
-        run: pyinstaller --clean --onefile --noconsole --add-data "${{ env.TCL_LIBRARY }};tcl8.6" --add-data "${{ env.TK_LIBRARY }};tk8.6" MiniAnnotator/annotator.py
+        # Keep it on one line, or switch to shell: cmd if you prefer multiline with ^
+        run: pyinstaller --clean --onefile --noconsole \
+          --add-data "${{ env.TCL_LIBRARY }};tcl8.6" \
+          --add-data "${{ env.TK_LIBRARY }};tk8.6" \
+          MiniAnnotator/annotator.py
 
       - name: Upload Windows .exe artifact
         uses: actions/upload-artifact@v4
