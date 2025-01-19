@@ -309,24 +309,38 @@ class TextAnnotator:
             )
 
     def create_category_level(self, level, options):
-        print(f"Creating level {level+1} with {len(options)} options:", options)
         """
         Creates a new frame of category buttons at the given level,
-        removing any deeper frames if they exist.
+        replacing any existing frames.
 
         Args:
             level (int): The depth level of the category structure (0-based).
             options (list): A list of categories or subcategories to create buttons for.
         """
-        while len(self.category_frames) > level:
-            frame = self.category_frames.pop()
-            frame.destroy()
+        # Remove any existing category frame
+        if self.category_frames:
+            self.category_frames[0].destroy()
+            self.category_frames = []
 
         frame = ttk.LabelFrame(self.root, text=f"Level {level + 1}", padding="10")
         frame.pack(fill=tk.BOTH, padx=10, pady=5)
-        self.category_frames.append(frame)
+        self.category_frames = [frame]  # Keep only one frame
 
         row, col = 0, 0
+        
+        # Add Back button for all levels except the first
+        if level > 0:
+            back_btn = ttk.Button(
+                frame,
+                text="← Back",
+                command=lambda: self.go_back(level)
+            )
+            back_btn.grid(row=row, column=col, padx=5, pady=5, sticky="ew")
+            col += 1
+            if col > 4:  # 5 buttons per row
+                col = 0
+                row += 1
+
         for option in options:
             if isinstance(option, dict):
                 display_text = list(option.keys())[0]
@@ -344,6 +358,31 @@ class TextAnnotator:
             if col > 4:  # 5 buttons per row
                 col = 0
                 row += 1
+
+    def go_back(self, current_level):
+        """
+        Handles going back one level in the category hierarchy.
+        
+        Args:
+            current_level (int): The current level we're going back from
+        """
+        # Remove the current level's selection
+        self.current_selections.pop()
+        
+        # If we have previous selections, rebuild from the parent level
+        if self.current_selections:
+            # Start from top
+            current_level = self.category_structure
+            # Traverse to the correct level
+            for sel in self.current_selections:
+                current_level = self._drill_down(current_level, sel)
+            # Create the parent level's options
+            self.create_category_level(len(self.current_selections), current_level)
+        else:
+            # If no selections left, go back to root level
+            self.create_category_level(0, list(self.category_structure.keys()))
+        
+        self.confirm_button.config(state=tk.DISABLED)
 
     def _drill_down(self, current_level, selection):
         if isinstance(current_level, dict):
