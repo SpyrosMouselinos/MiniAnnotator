@@ -1,0 +1,216 @@
+categories:
+  Vet-to-Pet:
+    types:
+      - Socio-emotional Exchange:
+        types:
+          - Personal remarks, social conversation  
+          - Laughs, tells jokes  
+          - Shows concern or worry  
+          - Reassures, encourages or shows optimism  
+          - Shows approval - direct  
+          - Gives compliment - general  
+          - Shows disapproval - direct  
+          - Shows criticism - general  
+          - Empathy statements  
+          - Legitimizing statements  
+          - Partnership statements  
+          - Self-disclosure statements  
+          - Asks for reassurance  
+          - Shows agreement or understanding  
+          - Back-channel responses
+      - Task-Focused Exchange:
+        types:
+          - Transition words
+          - Gives orientation, instructions
+          - Paraphrase/checks for understanding
+          - Asks for understanding
+          - Bid for repetition
+          - Asks for opinion
+          - Asks for permission
+          - Asks Questions (Closed-ended):
+            types:
+            - Medical Condition
+            - Therapeutic Regimen
+            - Lifestyle Information
+            - Psychosocial Information
+            - Other Information
+          - Asks Questions (Open-ended):
+              types:
+                - Medical Condition
+                - Therapeutic Regimen
+                - Lifestyle Information
+                - Psychosocial Information
+                - Other Information
+          - Gives Information:
+              types:
+                - Medical Condition
+                - Therapeutic Regimen
+                - Lifestyle Information
+                - Psychosocial Information
+                - Other Information
+          - Counsels or Directs Behavior:
+              types:
+                - Medical condition/Therapeutic regimen
+                - Lifestyle and Psychosocial
+          - Requests for Services or Medication
+  Vet-to-Client:
+      - Socio-emotional Exchange:
+        types:
+          - Personal remarks, social conversation  
+          - Laughs, tells jokes  
+          - Shows concern or worry  
+          - Reassures, encourages or shows optimism  
+          - Shows approval - direct  
+          - Gives compliment - general  
+          - Shows disapproval - direct  
+          - Shows criticism - general  
+          - Empathy statements  
+          - Legitimizing statements  
+          - Partnership statements  
+          - Self-disclosure statements  
+          - Asks for reassurance  
+          - Shows agreement or understanding  
+          - Back-channel responses
+      - Task-Focused Exchange:
+        types:
+          - Transition words
+          - Gives orientation, instructions
+          - Paraphrase/checks for understanding
+          - Asks for understanding
+          - Bid for repetition
+          - Asks for opinion
+          - Asks for permission
+          - Asks Questions (Closed-ended):
+            types:
+            - Medical Condition
+            - Therapeutic Regimen
+            - Lifestyle Information
+            - Psychosocial Information
+            - Other Information
+          - Asks Questions (Open-ended):
+              types:
+                - Medical Condition
+                - Therapeutic Regimen
+                - Lifestyle Information
+                - Psychosocial Information
+                - Other Information
+          - Gives Information:
+              types:
+                - Medical Condition
+                - Therapeutic Regimen
+                - Lifestyle Information
+                - Psychosocial Information
+                - Other Information
+          - Counsels or Directs Behavior:
+              types:
+                - Medical condition/Therapeutic regimen
+                - Lifestyle and Psychosocial
+          - Requests for Services or Medication
+  Client-to-Vet:
+    types:
+      - Socio-emotional Exchange:
+        types:
+          - Personal remarks, social conversation  
+          - Laughs, tells jokes  
+          - Shows concern or worry  
+          - Reassures, encourages or shows optimism  
+          - Shows approval - direct  
+          - Gives compliment - general  
+          - Shows disapproval - direct  
+          - Shows criticism - general  
+          - Empathy statements  
+          - Legitimizing statements  
+          - Partnership statements  
+          - Self-disclosure statements  
+          - Asks for reassurance  
+          - Shows agreement or understanding  
+          - Back-channel responses
+      - Task-Focused Exchange:
+        types:
+          - Transition words
+          - Gives orientation, instructions
+          - Paraphrase/checks for understanding
+          - Asks for understanding
+          - Bid for repetition
+          - Asks for opinion
+          - Asks for permission
+          - Asks Questions (Closed-ended):
+            types:
+            - Medical Condition
+            - Therapeutic Regimen
+            - Lifestyle Information
+            - Psychosocial Information
+            - Other Information
+          - Asks Questions (Open-ended):
+              types:
+                - Medical Condition
+                - Therapeutic Regimen
+                - Lifestyle Information
+                - Psychosocial Information
+                - Other Information
+          - Gives Information:
+              types:
+                - Medical Condition
+                - Therapeutic Regimen
+                - Lifestyle Information
+                - Psychosocial Information
+                - Other Information
+          - Counsels or Directs Behavior:
+              types:
+                - Medical condition/Therapeutic regimen
+                - Lifestyle and Psychosocial
+          - Requests for Services or Medication
+  Client-to-Pet:
+    types:
+      - Socio-emotional Exchange:
+        types:
+          - Personal remarks, social conversation  
+          - Laughs, tells jokes  
+          - Shows concern or worry  
+          - Reassures, encourages or shows optimism  
+          - Shows approval - direct  
+          - Gives compliment - general  
+          - Shows disapproval - direct  
+          - Shows criticism - general  
+          - Empathy statements  
+          - Legitimizing statements  
+          - Partnership statements  
+          - Self-disclosure statements  
+          - Asks for reassurance  
+          - Shows agreement or understanding  
+          - Back-channel responses
+      - Task-Focused Exchange:
+        types:
+          - Transition words
+          - Gives orientation, instructions
+          - Paraphrase/checks for understanding
+          - Asks for understanding
+          - Bid for repetition
+          - Asks for opinion
+          - Asks for permission
+          - Asks Questions (Closed-ended):
+            types:
+            - Medical Condition
+            - Therapeutic Regimen
+            - Lifestyle Information
+            - Psychosocial Information
+            - Other Information
+          - Asks Questions (Open-ended):
+              types:
+                - Medical Condition
+                - Therapeutic Regimen
+                - Lifestyle Information
+                - Psychosocial Information
+                - Other Information
+          - Gives Information:
+              types:
+                - Medical Condition
+                - Therapeutic Regimen
+                - Lifestyle Information
+                - Psychosocial Information
+                - Other Information
+          - Counsels or Directs Behavior:
+              types:
+                - Medical condition/Therapeutic regimen
+                - Lifestyle and Psychosocial
+          - Requests for Services or Medication
