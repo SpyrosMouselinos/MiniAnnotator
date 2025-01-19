@@ -72,6 +72,9 @@ class TextAnnotator:
         self.processing_skips = False
         self.skip_index = 0
 
+        # Add observation window size variable
+        self.observation_window = tk.IntVar(value=1)
+
         self.setup_gui()
 
         # Initial button states:
@@ -91,29 +94,66 @@ class TextAnnotator:
         top_frame = ttk.Frame(self.root, padding="10")
         top_frame.pack(fill=tk.X)
 
-        # Create the buttons as instance variables so we can adjust their state programmatically
-        self.load_config_button = ttk.Button(top_frame, text="Load Configuration", command=self.load_configuration)
+        # Left side - buttons
+        button_frame = ttk.Frame(top_frame)
+        button_frame.pack(side=tk.LEFT)
+
+        self.load_config_button = ttk.Button(button_frame, text="Load Configuration", command=self.load_configuration)
         self.load_config_button.pack(side=tk.LEFT)
 
-        self.load_file_button = ttk.Button(top_frame, text="Load File", command=self.load_file)
+        self.load_file_button = ttk.Button(button_frame, text="Load File", command=self.load_file)
         self.load_file_button.pack(side=tk.LEFT, padx=5)
 
-        self.load_progress_button = ttk.Button(top_frame, text="Load Progress", command=self.load_progress)
+        self.load_progress_button = ttk.Button(button_frame, text="Load Progress", command=self.load_progress)
         self.load_progress_button.pack(side=tk.LEFT, padx=5)
 
-        self.save_progress_button = ttk.Button(top_frame, text="Save Progress", command=self.save_annotations)
+        self.save_progress_button = ttk.Button(button_frame, text="Save Progress", command=self.save_annotations)
         self.save_progress_button.pack(side=tk.LEFT, padx=5)
 
-        # Always enabled button for downloading file from GitHub
-        self.download_stuffz_button = ttk.Button(top_frame, text="Download Stuffz", command=self.download_stuffz)
+        self.download_stuffz_button = ttk.Button(button_frame, text="Download Stuffz", command=self.download_stuffz)
         self.download_stuffz_button.pack(side=tk.LEFT, padx=5)
 
-        # Text display frame
-        text_frame = ttk.LabelFrame(self.root, text="Current Sentence", padding="10")
+        # Right side - slider
+        slider_frame = ttk.Frame(top_frame)
+        slider_frame.pack(side=tk.RIGHT, padx=20)
+
+        ttk.Label(slider_frame, text="Lines observation window:").pack(side=tk.LEFT)
+        self.window_slider = ttk.Scale(
+            slider_frame,
+            from_=1,
+            to=5,
+            orient=tk.HORIZONTAL,
+            variable=self.observation_window,
+            command=lambda v: self.on_slider_change(round(float(v))),
+            value=1
+        )
+        self.window_slider.pack(side=tk.LEFT, padx=5)
+        
+        # Add label to show current value
+        self.window_value_label = ttk.Label(slider_frame, text="1")
+        self.window_value_label.pack(side=tk.LEFT, padx=5)
+
+        # Text display frame with context panels
+        text_frame = ttk.LabelFrame(self.root, text="Text Context", padding="10")
         text_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
 
-        self.text_display = ttk.Label(text_frame, wraplength=700)
-        self.text_display.pack(fill=tk.BOTH, expand=True)
+        # Previous lines panel
+        prev_frame = ttk.LabelFrame(text_frame, text="Previous Lines", padding="5")
+        prev_frame.pack(fill=tk.X, padx=5, pady=2)
+        self.prev_display = ttk.Label(prev_frame, wraplength=700, foreground="gray")
+        self.prev_display.pack(fill=tk.X)
+
+        # Current line panel
+        current_frame = ttk.LabelFrame(text_frame, text="Current Line", padding="5")
+        current_frame.pack(fill=tk.X, padx=5, pady=2)
+        self.text_display = ttk.Label(current_frame, wraplength=700, font=("Segoe UI", 10, "bold"))
+        self.text_display.pack(fill=tk.X)
+
+        # Next lines panel
+        next_frame = ttk.LabelFrame(text_frame, text="Next Lines", padding="5")
+        next_frame.pack(fill=tk.X, padx=5, pady=2)
+        self.next_display = ttk.Label(next_frame, wraplength=700, foreground="gray")
+        self.next_display.pack(fill=tk.X)
 
         # Bottom frame for navigation
         bottom_frame = ttk.Frame(self.root, padding="10")
@@ -496,16 +536,58 @@ class TextAnnotator:
                     self.load_progress_button.config(state="disabled")
                     self.save_progress_button.config(state="normal")
 
+    def on_slider_change(self, value):
+        """
+        Handler for slider value changes. Updates the display with new context window.
+        """
+        value = round(float(value))  # Ensure we have an integer
+        self.observation_window.set(value)  # Update the variable
+        self.window_value_label.config(text=str(value))  # Update the displayed value
+        self.update_display()
+
     def update_display(self):
         """
-        Updates the text display with the current sentence and progress information.
-        If no sentences remain, displays a completion or 'no text loaded' message.
+        Updates all three text displays with the previous, current, and next sentences.
+        Shows multiple context lines based on the observation window setting.
         """
-        if self.sentences and self.current_index < len(self.sentences):
-            self.text_display.config(text=self.sentences[self.current_index])
-            self.progress_label.config(text=f"Progress: {self.current_index + 1}/{len(self.sentences)}")
-        else:
-            self.text_display.config(text="No text loaded or annotation complete")
+        if not self.sentences:
+            self.prev_display.config(text="")
+            self.text_display.config(text="No text loaded")
+            self.next_display.config(text="")
+            self.progress_label.config(text="Progress: 0/0")
+            return
+
+        if self.current_index >= len(self.sentences):
+            self.prev_display.config(text="")
+            self.text_display.config(text="Annotation complete")
+            self.next_display.config(text="")
+            return
+
+        window_size = self.observation_window.get()
+
+        # Update previous lines
+        prev_lines = []
+        start_idx = max(0, self.current_index - window_size)
+        if start_idx == 0 and self.current_index > 0:
+            prev_lines.append("(Start of document)")
+        for i in range(start_idx, self.current_index):
+            prev_lines.append(self.sentences[i])
+        self.prev_display.config(text="\n\n".join(prev_lines) if prev_lines else "(No previous lines)")
+
+        # Update current line
+        self.text_display.config(text=self.sentences[self.current_index])
+
+        # Update next lines
+        next_lines = []
+        end_idx = min(len(self.sentences), self.current_index + window_size + 1)
+        for i in range(self.current_index + 1, end_idx):
+            next_lines.append(self.sentences[i])
+        if end_idx >= len(self.sentences) and self.current_index < len(self.sentences) - 1:
+            next_lines.append("(End of document)")
+        self.next_display.config(text="\n\n".join(next_lines) if next_lines else "(No next lines)")
+
+        # Update progress label
+        self.progress_label.config(text=f"Progress: {self.current_index + 1}/{len(self.sentences)}")
 
     def save_annotations(self):
         """
