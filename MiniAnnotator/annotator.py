@@ -366,10 +366,17 @@ class TextAnnotator:
         Args:
             current_level (int): The current level we're going back from
         """
+        if not self.current_selections:  # Safety check
+            return
+        
         # Remove the current level's selection
         self.current_selections.pop()
         
-        # If we have previous selections, rebuild from the parent level
+        # Clear all existing frames
+        for frame in self.category_frames:
+            frame.destroy()
+        self.category_frames = []
+        
         if self.current_selections:
             # Start from top
             current_level = self.category_structure
@@ -574,15 +581,15 @@ class TextAnnotator:
             else:
                 self.current_index += 1
 
-            self.update_display()
-
-            # Clear deeper frames and selections
+            # Clear selections and recreate initial category level
             self.current_selections = []
-            for frame in self.category_frames[1:]:
+            for frame in self.category_frames:
                 frame.destroy()
-            self.category_frames = self.category_frames[:1]
-
+            self.category_frames = []
+            self.create_category_level(0, list(self.category_structure.keys()))
+            
             self.confirm_button.config(state=tk.DISABLED)
+            self.update_display()
 
             if self.current_index >= len(self.sentences):
                 self.save_annotations()
@@ -695,13 +702,15 @@ class TextAnnotator:
         else:
             self.current_index += 1
 
-        self.update_display()
-
-        # Reset deeper frames and selections
-        for frame in self.category_frames[1:]:
-            frame.destroy()
-        self.category_frames = self.category_frames[:1]
+        # Reset the category structure completely
         self.current_selections = []
+        for frame in self.category_frames:
+            frame.destroy()
+        self.category_frames = []
+        self.create_category_level(0, list(self.category_structure.keys()))
+        self.confirm_button.config(state=tk.DISABLED)
+
+        self.update_display()
 
         # If this is the very first annotation (even if 'SKIP'), disable load & enable save
         if len(self.annotations) == 1:
