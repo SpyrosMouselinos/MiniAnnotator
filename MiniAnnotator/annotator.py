@@ -26,6 +26,7 @@ class TextAnnotator:
         self.root = root
         self.root.title(f"MiniAnnotator v{__version__}")  # Add version to window title
         self.root.geometry("1200x800")
+        self.root.resizable(True, True)
 
         # -- Apply a ttk Style --
         style = ttk.Style(self.root)
@@ -308,6 +309,7 @@ class TextAnnotator:
             )
 
     def create_category_level(self, level, options):
+        print(f"Creating level {level+1} with {len(options)} options:", options)
         """
         Creates a new frame of category buttons at the given level,
         removing any deeper frames if they exist.
@@ -343,55 +345,65 @@ class TextAnnotator:
                 col = 0
                 row += 1
 
-    def select_category(self, level, selection):
-        """
-        Handle a category selection at the given level, navigates deeper into the category structure,
-        updates the current selections, and creates or removes category frames as needed.
-
-        Args:
-            level (int): The depth level of the category the user clicked.
-            selection (str): The text/value the user selected.
-        """
-        self.current_selections = self.current_selections[:level] + [selection]
-
-        current_level = self.category_structure
-        for sel in self.current_selections:
-            if isinstance(current_level, dict) and sel in current_level:
-                current_level = current_level[sel]
-                if isinstance(current_level, dict) and 'types' in current_level:
-                    current_level = current_level['types']
-            elif isinstance(current_level, list):
-                found_dict = False
-                for item in current_level:
-                    if isinstance(item, dict):
-                        possible_key = list(item.keys())[0]
-                        if possible_key == sel:
-                            selected_value = item[sel]
-                            if isinstance(selected_value, dict) and 'types' in selected_value:
-                                current_level = selected_value['types']
-                            else:
-                                if 'types' in item:  # fallback
-                                    current_level = item['types']
-                                else:
-                                    current_level = selected_value
-                            found_dict = True
-                            break
-                if not found_dict:
-                    pass
-
-        # Check what 'current_level' is
-        if isinstance(current_level, dict) and 'types' in current_level:
-            self.create_category_level(level + 1, current_level['types'])
-            return
+    def _drill_down(self, current_level, selection):
+        if isinstance(current_level, dict):
+            # For example: {"Socio-emotional Exchange": {"types": [...]}, "Task-Focused Exchange": {...}}
+            if selection in current_level:
+                value = current_level[selection]
+                if isinstance(value, dict) and "types" in value:
+                    return value["types"]
+                if isinstance(value, list):
+                    return value
+                return None
 
         if isinstance(current_level, list):
-            if selection in current_level:
-                self.confirm_button.config(state=tk.NORMAL)
-            else:
-                self.create_category_level(level + 1, current_level)
-            return
+            for item in current_level:
+                if isinstance(item, dict):
+                    # e.g. {"Asks Questions (Closed-ended)": {"types": [...]} }
+                    key = list(item.keys())[0]
+                    if key == selection:
+                        subvalue = item[key]
+                        if isinstance(subvalue, dict) and "types" in subvalue:
+                            return subvalue["types"]
+                        elif isinstance(subvalue, list):
+                            return subvalue
+                        else:
+                            return None
+                elif isinstance(item, str):
+                    if item == selection:
+                        # It's a leaf string
+                        return None
+        return None
 
-        self.confirm_button.config(state=tk.NORMAL)
+    def select_category(self, level, selection):
+        # Truncate or extend self.current_selections
+        self.current_selections = self.current_selections[:level] + [selection]
+
+        # Start from top
+        current_level = self.category_structure
+
+        # Traverse each already-chosen selection
+        for sel in self.current_selections:
+            next_level = self._drill_down(current_level, sel)
+            if next_level is None:
+                current_level = None
+                break
+            else:
+                current_level = next_level
+
+        # If current_level is None, we have no further sub-level => leaf
+        if current_level is None:
+            self.confirm_button.config(state=tk.NORMAL)
+            # Remove frames deeper than 'level'
+            while len(self.category_frames) > level + 1:
+                self.category_frames.pop().destroy()
+            return
+        else:
+            # Deeper sub-level exists
+            while len(self.category_frames) > level + 1:
+                self.category_frames.pop().destroy()
+            self.create_category_level(level + 1, current_level)
+            self.confirm_button.config(state=tk.DISABLED)
 
     def load_progress(self):
         """
