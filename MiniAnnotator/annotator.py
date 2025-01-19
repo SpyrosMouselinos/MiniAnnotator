@@ -58,7 +58,7 @@ class TextAnnotator:
         self.current_index = 0
         self.annotations = []
 
-        # Track the user’s chosen split method: "nl" for newlines or "fs" for full stops
+        # Track the user's chosen split method: "nl" for newlines or "fs" for full stops
         self.split_method = None
 
         # Initialize with empty category structure
@@ -66,6 +66,11 @@ class TextAnnotator:
 
         # Track current selections
         self.current_selections = []
+
+        # Add new instance variables to track skipped indices
+        self.skipped_indices = []
+        self.processing_skips = False
+        self.skip_index = 0
 
         self.setup_gui()
 
@@ -113,6 +118,10 @@ class TextAnnotator:
         # Bottom frame for navigation
         bottom_frame = ttk.Frame(self.root, padding="10")
         bottom_frame.pack(fill=tk.X)
+
+        # "Skip" button (always enabled)
+        self.skip_button = ttk.Button(bottom_frame, text="Skip", command=self.skip_annotation)
+        self.skip_button.pack(side=tk.RIGHT, padx=(0,5))
 
         self.confirm_button = ttk.Button(bottom_frame, text="Confirm", command=self.confirm_annotation, state=tk.DISABLED)
         self.confirm_button.pack(side=tk.RIGHT)
@@ -366,8 +375,11 @@ class TextAnnotator:
             else:
                 new_sentences = [s.strip() for s in text.split('\n') if s.strip()]
 
-            self.annotations = df.to_dict('records')
-            annotated_texts = [ann['text'] for ann in self.annotations]
+            # Convert the entire CSV into a list of dict records
+            all_records = df.to_dict('records')
+
+            # Validate that all annotated texts so far are in new_sentences
+            annotated_texts = [ann['text'] for ann in all_records]
             if not all(txt in new_sentences for txt in annotated_texts):
                 messagebox.showerror(
                     "Error",
@@ -377,15 +389,44 @@ class TextAnnotator:
                 return
 
             self.sentences = new_sentences
-            self.current_index = len(self.annotations)
+
+            # Separate records into completed and skipped
+            completed_records = [r for r in all_records if r['final_subcategory'] != 'SKIP']
+            skip_records = [r for r in all_records if r['final_subcategory'] == 'SKIP']
+
+            if skip_records:
+                # Load all completed records
+                self.annotations = completed_records
+                
+                # Create a list of indices for skipped items
+                self.skipped_indices = [self.sentences.index(r['text']) for r in skip_records]
+                self.skipped_indices.sort()  # Ensure they're in order
+                self.processing_skips = True
+                self.skip_index = 0
+                
+                # Set current_index to the first skip
+                self.current_index = self.skipped_indices[0]
+
+                messagebox.showinfo(
+                    "Progress Loaded",
+                    f"Loaded {len(completed_records)} completed annotations.\n"
+                    f"Found {len(skip_records)} skipped items to review.\n"
+                    f"Resuming from first skipped sentence at position {self.current_index + 1}."
+                )
+            else:
+                # No skips found - load all records and continue from where we left off
+                self.annotations = all_records
+                self.current_index = len(self.annotations)
+                self.processing_skips = False
+                messagebox.showinfo(
+                    "Progress Loaded",
+                    f"Loaded {len(self.annotations)} previous annotations.\n"
+                    f"Continuing from sentence {self.current_index + 1}"
+                )
 
             self.update_display()
-            messagebox.showinfo(
-                "Progress Loaded",
-                f"Loaded {len(self.annotations)} previous annotations.\nContinuing from sentence {self.current_index + 1}"
-            )
 
-            # If we have at least one annotation after loading progress, disable 'Load File' & 'Load Progress'
+            # If we have at least one annotation, disable 'Load File' & 'Load Progress'
             # and enable 'Save Progress'
             if len(self.annotations) > 0:
                 self.load_file_button.config(state="disabled")
@@ -402,8 +443,7 @@ class TextAnnotator:
 
     def confirm_annotation(self):
         """
-        Records the user's selected categories for the current sentence, appends to the annotation list,
-        advances to the next sentence, and resets the category selection frames.
+        Records the user's selected categories for the current sentence and advances to next.
         """
         if self.current_selections:
             full_path = ' > '.join(self.current_selections)
@@ -416,7 +456,25 @@ class TextAnnotator:
                 'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             })
 
-            self.current_index += 1
+            # Handle progression differently if we're processing skips
+            if self.processing_skips:
+                self.skip_index += 1
+                if self.skip_index < len(self.skipped_indices):
+                    self.current_index = self.skipped_indices[self.skip_index]
+                else:
+                    # We've finished processing all skips, move to the first unannotated sentence
+                    self.processing_skips = False
+                    annotated_texts = {ann['text'] for ann in self.annotations}
+                    for i, sentence in enumerate(self.sentences):
+                        if sentence not in annotated_texts:
+                            self.current_index = i
+                            break
+                    else:
+                        # If no unannotated sentences found, we're done
+                        self.current_index = len(self.sentences)
+            else:
+                self.current_index += 1
+
             self.update_display()
 
             # Clear deeper frames and selections
@@ -465,6 +523,54 @@ class TextAnnotator:
             df.to_csv(filename, index=False)
 
             messagebox.showinfo("Saved", f"Annotations saved to {filename}")
+
+    def skip_annotation(self):
+        """
+        Marks the current sentence as SKIP and moves on to the next one.
+        """
+        self.annotations.append({
+            'text': self.sentences[self.current_index],
+            'categories': 'SKIP',
+            'final_subcategory': 'SKIP',
+            'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        })
+
+        # Handle progression differently if we're processing skips
+        if self.processing_skips:
+            self.skip_index += 1
+            if self.skip_index < len(self.skipped_indices):
+                self.current_index = self.skipped_indices[self.skip_index]
+            else:
+                # We've finished processing all skips, move to the first unannotated sentence
+                self.processing_skips = False
+                annotated_texts = {ann['text'] for ann in self.annotations}
+                for i, sentence in enumerate(self.sentences):
+                    if sentence not in annotated_texts:
+                        self.current_index = i
+                        break
+                else:
+                    # If no unannotated sentences found, we're done
+                    self.current_index = len(self.sentences)
+        else:
+            self.current_index += 1
+
+        self.update_display()
+
+        # Reset deeper frames and selections
+        for frame in self.category_frames[1:]:
+            frame.destroy()
+        self.category_frames = self.category_frames[:1]
+        self.current_selections = []
+
+        # If this is the very first annotation (even if 'SKIP'), disable load & enable save
+        if len(self.annotations) == 1:
+            self.load_file_button.config(state="disabled")
+            self.load_progress_button.config(state="disabled")
+            self.save_progress_button.config(state="normal")
+
+        if self.current_index >= len(self.sentences):
+            self.save_annotations()
+            messagebox.showinfo("Complete", "Annotation complete! Results saved.")
 
 def main():
     """
