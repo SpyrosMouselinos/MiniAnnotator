@@ -1,7 +1,7 @@
 [Setup]
 ; ----- Basic Installer Info -----
 AppName=MiniAnnotator
-AppVersion=1.0.1
+AppVersion=1.0.2
 AppPublisher=RaccoonDev
 DefaultDirName={pf}\MiniAnnotator
 
