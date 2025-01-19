@@ -6,6 +6,10 @@ import re
 import yaml
 from pathlib import Path
 import urllib.request  # Standard library way to download a file over HTTP
+import json
+import webbrowser
+
+__version__ = "1.0.2"  # Current version of MiniAnnotator
 
 class TextAnnotator:
     """
@@ -20,7 +24,7 @@ class TextAnnotator:
             root (tk.Tk): The main Tkinter window object.
         """
         self.root = root
-        self.root.title("MiniAnnotator")
+        self.root.title(f"MiniAnnotator v{__version__}")  # Add version to window title
         self.root.geometry("1200x800")
 
         # -- Apply a ttk Style --
@@ -112,6 +116,10 @@ class TextAnnotator:
 
         self.download_stuffz_button = ttk.Button(button_frame, text="Download Stuffz", command=self.download_stuffz)
         self.download_stuffz_button.pack(side=tk.LEFT, padx=5)
+
+        # Add Check Updates button
+        self.check_updates_button = ttk.Button(button_frame, text="Check Updates", command=self.check_updates)
+        self.check_updates_button.pack(side=tk.LEFT, padx=5)
 
         # Right side - slider
         slider_frame = ttk.Frame(top_frame)
@@ -653,6 +661,49 @@ class TextAnnotator:
         if self.current_index >= len(self.sentences):
             self.save_annotations()
             messagebox.showinfo("Complete", "Annotation complete! Results saved.")
+
+    def check_updates(self):
+        """
+        Checks GitHub tags for newer versions and prompts the user if an update is available.
+        """
+        try:
+            # GitHub API URL for tags
+            url = "https://api.github.com/repos/SpyrosMouselinos/MiniAnnotator/tags"
+            
+            # Make request to GitHub API
+            req = urllib.request.Request(url)
+            req.add_header('Accept', 'application/vnd.github.v3+json')
+            
+            with urllib.request.urlopen(req) as response:
+                tags = json.loads(response.read())
+            
+            if not tags:
+                messagebox.showinfo("Update Check", "No releases found.")
+                return
+                
+            # Get latest version from tags (removing 'v' prefix)
+            latest_version = tags[0]['name'].lstrip('v')
+            
+            # Compare versions (simple string comparison since we use semantic versioning)
+            if latest_version > __version__:
+                if messagebox.askyesno(
+                    "Update Available",
+                    f"A new version (v{latest_version}) is available!\n"
+                    f"Current version: v{__version__}\n\n"
+                    "Would you like to visit the download page?"
+                ):
+                    webbrowser.open("https://github.com/SpyrosMouselinos/MiniAnnotator/tags")
+            else:
+                messagebox.showinfo(
+                    "Up to Date",
+                    f"You are running the latest version (v{__version__})!"
+                )
+                
+        except Exception as e:
+            messagebox.showerror(
+                "Error",
+                f"Failed to check for updates: {str(e)}"
+            )
 
 def main():
     """
